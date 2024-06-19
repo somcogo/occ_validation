@@ -1,26 +1,19 @@
 import os
-import glob
+import csv
 from functools import lru_cache
 
 import numpy as np
 from scipy import ndimage
 import torch
 import nibabel as nib
-from pydicom.pixel_data_handlers.util import apply_modality_lut
 from skimage.transform import resize
 from monai.networks.nets import SwinUNETR as MonaiSwin
 
 from mednext import MedNeXt
 
-THRESHOLDS = {'medcent':0,
-             'medswarm':0,
-             'swincent':0,
-             'swinswarm':0}
+THRESHOLDS = np.load('data/thresholds.npy', allow_pickle=True).item()
 
-PREPROC = {'min':0,
-           'max':0,
-           'mean':0,
-           'std':0}
+PREPROC = np.load('data/preproc.npy', allow_pickle=True).item()
 
 def get_model(model_name):
     if 'med' in model_name:
@@ -28,7 +21,8 @@ def get_model(model_name):
     else:
         model = MonaiSwin(img_size=[128, 128, 128], in_channels=1, out_channels=2, depths=[2, 2, 2, 2], num_heads=[3, 6, 12, 24], feature_size=48, spatial_dims=3)
     
-    state_dict = torch.load(os.path.join('state_dicts', model_name + '.state'))
+    state_dict = torch.load(os.path.join('data', model_name + '.state'))['model_state']
+    state_dict = {key.replace('module.', ''):value for key, value in state_dict.items()}
     model.load_state_dict(state_dict)
     return model, THRESHOLDS[model_name]
 
@@ -49,7 +43,7 @@ def resample(vol, spacing, order=3):
         resampled = np.clip(resampled, a_min=PREPROC['min'], a_max=PREPROC['max'])
         resampled = (resampled - PREPROC['mean']) / PREPROC['std']
 
-    # DO WE NEED TO FLIP????
+    # TODO:DO WE NEED TO FLIP????
     # final_mask = np.flip(final_mask, axis=1).transpose(1, 0, 2)
     return resampled
 
@@ -88,7 +82,7 @@ def postprocess_to_single_comp(pred_class):
     return post
 
 def inference(model, th, img, device):
-    img = torch.from_numpy(img, device='cpu')
+    img = torch.from_numpy(img).float()
     model = model.to(device)
     model.eval()
     H, W, D = img.shape
@@ -109,14 +103,14 @@ def inference(model, th, img, device):
         for y_c in y_coords:
             for z_c in z_coords:
                 patch = img[x_c: x_c+x, y_c: y_c+y, z_c: z_c+z]
-                patch = patch.to(device)
+                patch = patch.to(device).unsqueeze(0).unsqueeze(0)
                 temp1 = model(patch)
-                temp1 = temp1.detach().cpu()
+                temp1 = temp1.squeeze().detach().cpu()
                 pred[:, x_c: x_c+x, y_c: y_c+y, z_c: z_c+z] += temp1 * gaussian
                 n_predictions[x_c: x_c+x, y_c: y_c+y, z_c: z_c+z] += gaussian
                 del temp1, patch
     pred /= n_predictions
-    # pred = pred.detach().cpu()
+    pred = pred.numpy()
 
     e_pred = np.exp(pred - pred.max(axis=0))
     prob = (e_pred / np.sum(e_pred, axis=0, keepdims=True))[1]
@@ -124,9 +118,45 @@ def inference(model, th, img, device):
 
     return post
 
-def comb_img_and_masks(img, pred, mask):
-    pass
+def comb_img_and_masks(img, mask, alpha=0.3):
+    img = (img - img.min()) / (img.max() - img.min()) * 255
+    mask = mask > 0
+    img[mask] = img[mask]*alpha + (1 - alpha) * 255
+    return img.astype(dtype=np.uint8)
 
 def save_nii(array, path, header):
     nii = nib.Nifti1Image(array, None, header=header)
     nib.save(nii, path)
+
+def save_results(cl, ids, out_dir, model_name):
+    tp = (cl == 2).sum()
+    fp = (cl == 1).sum()
+    tn = (cl == 0).sum()
+    fn = (cl == 3).sum()
+    sensitivity = tp / (tp + fn) if tp + fn > 0 else 0
+    specificity = tn / (tn + fp) if tn + fp > 0 else 0
+    ppv = tp / (tp + fp) if tp + fp > 0 else 0
+    npv = tn / (tn + fn) if tn + fn > 0 else 0
+    f1 = 2*tp / (2*tp + fn + fp) if 2*tp + fn + fp > 0 else 0
+    f2 = 5*tp / (5*tp + 4*fn + fp) if 5*tp + 4*fn + fp > 0 else 0
+
+    res_dict = {'f1':f1,
+                'f2':f2,
+                'sensitivity':sensitivity,
+                'specificity':specificity,
+                'ppv':ppv,
+                'npv':npv,
+                'tp ids':[ids[i] for i in np.where(cl == 2)[0]],
+                'fp ids':[ids[i] for i in np.where(cl == 1)[0]],
+                'tn ids':[ids[i] for i in np.where(cl == 0)[0]],
+                'fn ids':[ids[i] for i in np.where(cl == 3)[0]]}
+    np.save(os.path.join(out_dir, f'{model_name}_results.npy'), res_dict)
+    
+    with open(os.path.join(out_dir, f'{model_name}_results.csv'), 'w') as file:
+        wr = csv.writer(file, quoting=csv.QUOTE_ALL)
+        for key, value in res_dict.items():
+            if 'ids' in key:
+                row = [key] + value
+            else:
+                row = [key, value]
+            wr.writerow(row)

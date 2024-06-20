@@ -24,8 +24,7 @@ def get_model(model_name):
     state_dict = {key.replace('module.', ''):value for key, value in state_dict.items()}
     model.load_state_dict(state_dict)
 
-    eps = 1e-6
-    return model, THRESHOLDS[model_name] + eps
+    return model, THRESHOLDS[model_name]
 
 def load_nii(nii_path):
     nii = nib.load(nii_path)

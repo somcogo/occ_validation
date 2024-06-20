@@ -1,7 +1,7 @@
 config = {
-    'save_pred':True,
+    'no_save':False,
     'model_name':'medcent',
-    'cta_dir':'../segmentation/data/nii_test/img',
-    'mask_dir':'../segmentation/data/nii_test/mask',
-    'out_dir':'../segmentation/data/nii_test/outmedcentflip'
+    'cta_dir':'path/to/scans',
+    'mask_dir':'path/to/masks',
+    'out_dir':'path/to/output'
 }

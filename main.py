@@ -58,7 +58,7 @@ def main():
             classification[i] = 2 if dice > 0.1 else 3
             dices[i] = dice        
 
-        if config['save_pred']:
+        if not config['no_save']:
             img_final = resize(img, img_orig_shape, order=3)
             seg_final = resize(seg, img_orig_shape, order=0)
             img_to_save = comb_img_and_masks(img_final, seg_final, alpha=0.1)
@@ -71,13 +71,18 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Occlusion validation')
-    parser.add_argument('save_pred', help='If true, model prediction is save to out_dir', type=bool)
-    parser.add_argument('model_name', help='Name of the model used to make predictions', type=str)
-    # parser.add_argument('cta_dir', help='Path to CTA scans', type=str)
-    # parser.add_argument('mask_dir', help='Path to masks', type=str)
-    # parser.add_argument('out_dir', help='Directory for output. Created if does not already exist', type=str)
+    parser.add_argument('--no_save', help='If true, model prediction is save to out_dir', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('--model_name', help='Name of the model used to make predictions', type=str, default='medcent')
+    parser.add_argument('--cta_dir', help='Path to CTA scans', type=str, default=None)
+    parser.add_argument('--mask_dir', help='Path to masks', type=str, default=None)
+    parser.add_argument('--out_dir', help='Directory for output. Created if does not already exist', type=str, default=None)
     args = parser.parse_args()
-    config['save_pred'] = args.save_pred
+    print(args)
+    config['no_save'] = args.no_save
     config['model_name'] = args.model_name
+    config['cta_dir'] = args.cta_dir if args.cta_dir is not None else config['cta_dir']
+    config['mask_dir'] = args.mask_dir if args.mask_dir is not None else config['mask_dir']
+    config['out_dir'] = args.out_dir if args.out_dir is not None else config['out_dir']
+    assert config['model_name'] in ['medcent', 'medswarm', 'swincent', 'swinswarm']
     print(config)
-    main()
+    # main()

@@ -12,7 +12,6 @@ from monai.networks.nets import SwinUNETR as MonaiSwin
 from mednext import MedNeXt
 
 THRESHOLDS = np.load('data/thresholds.npy', allow_pickle=True).item()
-
 PREPROC = np.load('data/preproc.npy', allow_pickle=True).item()
 
 def get_model(model_name):
@@ -24,7 +23,9 @@ def get_model(model_name):
     state_dict = torch.load(os.path.join('data', model_name + '.state'))['model_state']
     state_dict = {key.replace('module.', ''):value for key, value in state_dict.items()}
     model.load_state_dict(state_dict)
-    return model, THRESHOLDS[model_name]
+
+    eps = 1e-6
+    return model, THRESHOLDS[model_name] + eps
 
 def load_nii(nii_path):
     nii = nib.load(nii_path)
@@ -42,9 +43,7 @@ def resample(vol, spacing, order=3):
     if order > 0:
         resampled = np.clip(resampled, a_min=PREPROC['min'], a_max=PREPROC['max'])
         resampled = (resampled - PREPROC['mean']) / PREPROC['std']
-
-    # TODO:DO WE NEED TO FLIP????
-    # final_mask = np.flip(final_mask, axis=1).transpose(1, 0, 2)
+        
     return resampled
 
 @lru_cache(maxsize=2)
@@ -82,6 +81,7 @@ def postprocess_to_single_comp(pred_class):
     return post
 
 def inference(model, th, img, device):
+    img = np.flip(img.transpose(1, 0, 2), axis=0).copy()
     img = torch.from_numpy(img).float()
     model = model.to(device)
     model.eval()
@@ -115,6 +115,7 @@ def inference(model, th, img, device):
     e_pred = np.exp(pred - pred.max(axis=0))
     prob = (e_pred / np.sum(e_pred, axis=0, keepdims=True))[1]
     post = postprocess_to_single_comp(prob > th)
+    post = np.flip(post, axis=0).transpose(1, 0, 2)
 
     return post
 

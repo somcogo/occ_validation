@@ -44,11 +44,11 @@ def main():
         else:
             mask = None
 
-        seg = inference(model, th, img, device)
+        seg, prob = inference(model, th, img, device)
 
         os.makedirs(config['out_dir'], exist_ok=True)
         # DELETE
-        np.save(os.path.join(config['out_dir'], cta_id + '.npy'), img)
+        np.save(os.path.join(config['out_dir'], cta_id + '_prob.npy'), prob)
         np.save(os.path.join(config['out_dir'], cta_id + '_seg.npy'), seg)
 
         if mask is None:

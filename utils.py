@@ -117,7 +117,7 @@ def inference(model, th, img, device):
     post = postprocess_to_single_comp(prob > th)
     post = np.flip(post, axis=0).transpose(1, 0, 2)
 
-    return post
+    return post, prob
 
 def comb_img_and_masks(img, mask, alpha=0.3):
     img = (img - img.min()) / (img.max() - img.min()) * 255

@@ -85,4 +85,4 @@ if __name__ == '__main__':
     config['out_dir'] = args.out_dir if args.out_dir is not None else config['out_dir']
     assert config['model_name'] in ['medcent', 'medswarm', 'swincent', 'swinswarm']
     print(config)
-    # main()
+    main()

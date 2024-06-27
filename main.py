@@ -55,6 +55,7 @@ def main():
             classification[i] = 2 if dice > 0.1 else 3
             dices[i] = dice        
 
+        print('The value of no_save is:', config['no_save'])
         if not config['no_save']:
             img_final = resize(img, img_orig_shape, order=3)
             seg_final = resize(seg, img_orig_shape, order=0)

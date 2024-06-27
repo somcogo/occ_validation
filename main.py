@@ -60,7 +60,7 @@ def main():
             img_final = resize(img, img_orig_shape, order=3)
             seg_final = resize(seg, img_orig_shape, order=0)
             img_to_save = comb_img_and_masks(img_final, seg_final, alpha=0.1)
-            save_path = os.path.join(config['out_dir'], cta_id + '.nii.gz')
+            save_path = os.path.join(config['out_dir'], cta_id + config['model_name'] + '.nii.gz')
             save_nii(img_to_save, save_path, img_header)
         t2 = time.time()
         print(str(i+1)+'/'+str(len(ctas)), cta_path, t2-t1)

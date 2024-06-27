@@ -22,7 +22,7 @@ def main():
 
     for i, cta_path in enumerate(ctas):
         t1 = time.time()
-        cta_id = os.path.basename(cta_path).split('_')[0]
+        cta_id = os.path.basename(cta_path).replace('.nii.gz', '').replace('.nii', '')
 
         mask_paths = glob.glob(os.path.join(config['mask_dir'], cta_id + '*'))
         try:

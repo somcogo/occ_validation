@@ -2,12 +2,8 @@ import argparse
 import os
 import csv
 
-import numpy as np
-import torch
-from skimage.transform import resize
-
 from config import eval_config
-from utils import get_model, load_nii, resample, inference, comb_img_and_masks, save_nii, save_results
+from utils import load_nii
 
 def eval(pred_file, mask_file, out_dir):
     pred, _ = load_nii(pred_file)

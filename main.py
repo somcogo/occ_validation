@@ -18,7 +18,6 @@ def main():
     ctas.sort()
     img_ids = []
     classification = np.zeros((len(ctas)), dtype=np.int8)
-    dices = np.zeros((len(ctas)))    
 
     for i, cta_path in enumerate(ctas):
         t1 = time.time()
@@ -51,9 +50,7 @@ def main():
         if mask is None:
             classification[i] = 0 if seg.sum() == 0 else 1
         else:
-            dice = 2 * (seg * mask).sum() / (seg.sum() + mask.sum())
-            classification[i] = 2 if dice > 0.1 else 3
-            dices[i] = dice        
+            classification[i] = 2 if (seg * mask).sum() > 0 else 3
 
         print('The value of no_save is:', config['no_save'])
         if not config['no_save']:

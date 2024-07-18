@@ -9,5 +9,5 @@ config = {
 eval_config = {
     'pred_path':'path/to/prediction',
     'mask_path':'path/to/ground_truth',
-    'out_dir':'path/to/output'
+    'out_dir':'out'
 }

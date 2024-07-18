@@ -54,9 +54,10 @@ def main():
 
         print('The value of no_save is:', config['no_save'])
         if not config['no_save']:
-            img_final = resize(img, img_orig_shape, order=3)
+            # img_final = resize(img, img_orig_shape, order=3)
             seg_final = resize(seg, img_orig_shape, order=0)
-            img_to_save = comb_img_and_masks(img_final, seg_final, alpha=0.1)
+            # img_to_save = comb_img_and_masks(img_final, seg_final, alpha=0.1)
+            img_to_save = seg_final
             save_path = os.path.join(config['out_dir'], 'prediction_mask_' + cta_id + '_' + config['model_name'] + '.nii.gz')
             save_nii(img_to_save, save_path, img_header)
         t2 = time.time()

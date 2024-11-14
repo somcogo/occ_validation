@@ -11,7 +11,7 @@ from monai.networks.nets import SwinUNETR as MonaiSwin
 
 from mednext import MedNeXt
 
-THRESHOLDS = np.load('data/thresholds_final.npy', allow_pickle=True).item()
+THRESHOLDS = np.load('data/threshold_14-11-2024.npy', allow_pickle=True).item()
 PREPROC = np.load('data/preproc.npy', allow_pickle=True).item()
 
 def get_model(model_name):
@@ -20,7 +20,8 @@ def get_model(model_name):
     else:
         model = MonaiSwin(img_size=[128, 128, 128], in_channels=1, out_channels=2, depths=[2, 2, 2, 2], num_heads=[3, 6, 12, 24], feature_size=48, spatial_dims=3)
     
-    state_dict = torch.load(os.path.join('data', model_name.split('_')[0] + '.state'))['model_state']
+    # state_dict = torch.load(os.path.join('data', model_name.split('_')[0] + '.state'))['model_state']
+    state_dict = torch.load(os.path.join('data', model_name + '.state'))['model_state']
     state_dict = {key.replace('module.', ''):value for key, value in state_dict.items()}
     model.load_state_dict(state_dict)
 
